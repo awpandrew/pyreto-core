@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyreto"
-version = "0.2.0"
-description = "Tail risk management library"
+version = "0.3.0"
+description = "Tail risk management library (classless functional API)"
 authors = [{name = "Developer", email = "dev@example.com"}]
 license = {text = "MIT"}
 readme = "README.md"

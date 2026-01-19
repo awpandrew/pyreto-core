@@ -1,8 +1,7 @@
-"""Distributions module."""
+"""Functional API for distributions."""
 
-from .fit import fit
-from .student_t import StudentT
-from .alpha_stable import AlphaStable
-from .normal_inverse_gaussian import NormalInverseGaussian
+from . import student_t
+from . import alpha_stable
+from . import nig
 
-__all__ = ["fit", "StudentT", "AlphaStable", "NormalInverseGaussian"]
+__all__ = ["student_t", "alpha_stable", "nig"]

@@ -1,6 +1,10 @@
-"""Pyreto: Tail risk management library."""
+"""Pyreto: Tail risk management library (classless functional API)."""
 
-from .distributions import fit
+__version__ = "0.3.0"
 
-__version__ = "0.2.0"
-__all__ = ["fit"]
+# Make distributions available at pyreto.*
+from .distributions import student_t
+from .distributions import alpha_stable
+from .distributions import nig
+
+__all__ = ["student_t", "alpha_stable", "nig"]

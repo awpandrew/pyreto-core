@@ -1,103 +1,201 @@
-"""Alpha-Stable distribution."""
+"""Alpha-Stable distribution - pure functions."""
 
 import numpy as np
 from scipy.optimize import minimize
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import norm
-from .base import DistributionFitter
 
 
-class AlphaStable(DistributionFitter):
-    """Alpha-Stable distribution."""
+def _validate_returns(returns):
+    """Validate returns array."""
+    returns = np.array(returns, dtype=np.float64).flatten()
+    if not np.isfinite(returns).all():
+        raise ValueError("Returns must be finite (no NaN or Inf)")
+    if len(returns) == 0:
+        raise ValueError("Returns cannot be empty")
+    return returns
+
+
+def _validate_alpha(alpha):
+    """Validate alpha parameter."""
+    if not (0 < alpha < 1):
+        raise ValueError("Alpha must be between 0 and 1")
+
+
+def _char_func(t, alpha, beta, c, mu):
+    """Characteristic function."""
+    if alpha == 1:
+        return np.exp(1j * mu * t - c * np.abs(t) * 
+                     (1 + 1j * beta * np.sign(t) * np.log(np.abs(t))))
+    else:
+        return np.exp(1j * mu * t - c**alpha * np.abs(t)**alpha * 
+                     (1 - 1j * beta * np.sign(t) * np.tan(np.pi * alpha / 2)))
+
+
+def _pdf_single(x, alpha, beta, c, mu):
+    """PDF for single point."""
+    if alpha == 2.0:
+        return norm.pdf(x, loc=mu, scale=c)
     
-    def _char_func(self, t, alpha, beta, c, mu):
-        if alpha == 1:
-            return np.exp(1j * mu * t - c * np.abs(t) * (1 + 1j * beta * np.sign(t) * np.log(np.abs(t))))
-        else:
-            return np.exp(1j * mu * t - c**alpha * np.abs(t)**alpha * 
-                         (1 - 1j * beta * np.sign(t) * np.tan(np.pi * alpha / 2)))
+    t = np.linspace(-50, 50, 1024)
+    cf = _char_func(t, alpha, beta, c, mu - x)
+    dt = t[1] - t[0]
+    cf_sym = np.concatenate([cf, np.conj(cf[-1:0:-1])])
+    pdf_component = np.fft.ifft(cf_sym).real[:len(t)] * len(t) / (2 * np.pi)
+    return max(abs(pdf_component[0]), 1e-10)
+
+
+def fit(returns):
+    """Fit Alpha-Stable distribution using MLE.
     
-    def _pdf(self, x, alpha, beta, c, mu):
-        if alpha == 2.0:
-            return norm.pdf(x, loc=mu, scale=c)
+    Parameters
+    ----------
+    returns : array-like
+        Array of returns
         
-        t = np.linspace(-50, 50, 1024)
-        x = np.atleast_1d(x)
-        results = np.zeros_like(x)
-        
-        for i, xi in enumerate(x):
-            cf = self._char_func(t, alpha, beta, c, mu - xi)
-            dt = t[1] - t[0]
-            cf_sym = np.concatenate([cf, np.conj(cf[-1:0:-1])])
-            pdf_component = np.fft.ifft(cf_sym).real[:len(t)] * len(t) / (2 * np.pi)
-            results[i] = np.abs(pdf_component[0])
-        
-        return np.maximum(results, 1e-10)
+    Returns
+    -------
+    dict
+        Fitted parameters: {'alpha': float, 'beta': float, 'c': float, 'mu': float}
+    """
+    returns = _validate_returns(returns)
     
-    def fit(self) -> dict:
-        """Fit using MLE. Returns dict with alpha, beta, c, mu."""
-        def neg_loglik(params):
-            alpha, beta, c, mu = params
-            if not (0.1 < alpha <= 2.0) or not (-1 <= beta <= 1) or c <= 0:
+    def neg_loglik(params):
+        alpha, beta, c, mu = params
+        if not (0.1 < alpha <= 2.0) or not (-1 <= beta <= 1) or c <= 0:
+            return 1e10
+        try:
+            pdf_vals = [_pdf_single(x, alpha, beta, c, mu) for x in returns]
+            if any(p <= 0 for p in pdf_vals):
                 return 1e10
-            try:
-                pdf_vals = self._pdf(self.returns, alpha, beta, c, mu)
-                if np.any(pdf_vals <= 0):
-                    return 1e10
-                return -np.sum(np.log(pdf_vals))
-            except:
-                return 1e10
-        
-        mu0 = np.mean(self.returns)
-        c0 = np.std(self.returns) / np.sqrt(2)
-        alpha0 = 1.8
-        beta0 = 0.0
-        x0 = np.array([alpha0, beta0, c0, mu0])
-        bounds = [(0.1, 2.0), (-0.999, 0.999), (1e-6, 10.0), (None, None)]
-        
-        res = minimize(neg_loglik, x0, method='Nelder-Mead',
-                      options={'maxiter': 500, 'xatol': 1e-6, 'fatol': 1e-6})
-        
-        alpha, beta, c, mu = res.x
-        self.params = {'alpha': alpha, 'beta': beta, 'c': c, 'mu': mu}
-        return self.params
+            return -np.sum(np.log(pdf_vals))
+        except:
+            return 1e10
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
-        if not self.params:
-            self.fit()
-        params = self.params
-        return self._pdf(x, params['alpha'], params['beta'], params['c'], params['mu'])
+    mu0 = np.mean(returns)
+    c0 = np.std(returns) / np.sqrt(2)
+    alpha0 = 1.8
+    beta0 = 0.0
+    x0 = np.array([alpha0, beta0, c0, mu0])
+    bounds = [(0.1, 2.0), (-0.999, 0.999), (1e-6, 10.0), (None, None)]
     
-    def cdf(self, x: np.ndarray) -> np.ndarray:
-        if not self.params:
-            self.fit()
-        x = np.atleast_1d(x)
-        results = np.zeros_like(x)
-        for i, xi in enumerate(x):
-            results[i], _ = quad(lambda xx: self.pdf(np.array([xx]))[0], -np.inf, xi)
-        return results
+    res = minimize(neg_loglik, x0, method='Nelder-Mead',
+                  options={'maxiter': 500, 'xatol': 1e-6, 'fatol': 1e-6})
     
-    def ppf(self, q: np.ndarray) -> np.ndarray:
-        if not self.params:
-            self.fit()
-        q = np.atleast_1d(q)
-        results = np.zeros_like(q)
-        for i, qi in enumerate(q):
-            def f(x):
-                return self.cdf(np.array([x]))[0] - qi
-            results[i] = brentq(f, -10, 10)
-        return results
+    alpha, beta, c, mu = res.x
+    return {'alpha': alpha, 'beta': beta, 'c': c, 'mu': mu}
+
+
+def pdf(x, par):
+    """Probability density function.
     
-    def es(self, alpha: float) -> float:
-        if not (0 < alpha < 1):
-            raise ValueError("Alpha must be between 0 and 1")
-        if not self.params:
-            self.fit()
-        var = self.var(alpha)
+    Parameters
+    ----------
+    x : array-like
+        Points at which to evaluate PDF
+    par : dict
+        Parameters from fit()
         
-        def integrand(x):
-            return x * self.pdf(np.array([x]))[0]
+    Returns
+    -------
+    ndarray
+        PDF values
+    """
+    x = np.atleast_1d(x)
+    results = np.zeros_like(x)
+    for i, xi in enumerate(x):
+        results[i] = _pdf_single(xi, par['alpha'], par['beta'], par['c'], par['mu'])
+    return results
+
+
+def cdf(x, par):
+    """Cumulative distribution function.
+    
+    Parameters
+    ----------
+    x : array-like
+        Points at which to evaluate CDF
+    par : dict
+        Parameters from fit()
         
-        es_val, _ = quad(integrand, -np.inf, var)
-        return es_val / alpha
+    Returns
+    -------
+    ndarray
+        CDF values
+    """
+    x = np.atleast_1d(x)
+    results = np.zeros_like(x)
+    for i, xi in enumerate(x):
+        results[i], _ = quad(lambda xx: pdf(xx, par), -np.inf, xi)
+    return results
+
+
+def ppf(q, par):
+    """Percent point function (inverse CDF).
+    
+    Parameters
+    ----------
+    q : array-like
+        Quantiles to evaluate
+    par : dict
+        Parameters from fit()
+        
+    Returns
+    -------
+    ndarray
+        PPF values
+    """
+    q = np.atleast_1d(q)
+    results = np.zeros_like(q)
+    
+    for i, qi in enumerate(q):
+        def f(x):
+            return cdf(np.array([x]), par)[0] - qi
+        results[i] = brentq(f, -10, 10)
+    
+    return results
+
+
+def var(alpha, par):
+    """Value at Risk at significance level alpha.
+    
+    Parameters
+    ----------
+    alpha : float
+        Significance level (0 < alpha < 1)
+    par : dict
+        Parameters from fit()
+        
+    Returns
+    -------
+    float
+        VaR value
+    """
+    _validate_alpha(alpha)
+    return ppf(alpha, par)[0]
+
+
+def es(alpha, par):
+    """Expected Shortfall at significance level alpha.
+    
+    Parameters
+    ----------
+    alpha : float
+        Significance level (0 < alpha < 1)
+    par : dict
+        Parameters from fit()
+        
+    Returns
+    -------
+    float
+        ES value
+    """
+    _validate_alpha(alpha)
+    var_val = var(alpha, par)
+    
+    def integrand(x):
+        return x * pdf(x, par)[0]
+    
+    es_val, _ = quad(integrand, -np.inf, var_val)
+    return es_val / alpha
