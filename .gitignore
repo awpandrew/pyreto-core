@@ -1,0 +1,9 @@
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+.pyre/
+.pyreto/
+.venv/
+test_install/
