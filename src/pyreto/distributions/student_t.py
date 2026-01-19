@@ -109,7 +109,8 @@ def var(alpha, par):
         VaR value
     """
     _validate_alpha(alpha)
-    return ppf(alpha, par)[0]
+    result = ppf(alpha, par)
+    return float(result) if np.isscalar(result) else float(result[0])
 
 
 def es(alpha, par):
@@ -128,10 +129,20 @@ def es(alpha, par):
         ES value
     """
     _validate_alpha(alpha)
+    
+    # For Student's T, we can use numerical integration with better bounds
     var_val = var(alpha, par)
     
-    def integrand(x):
-        return x * pdf(x, par)[0]
+    # Use finite integration bounds to avoid quad issues
+    lower_bound = var_val - 10 * par['scale']
+    if np.isinf(lower_bound):
+        lower_bound = -10
     
-    es_val, _ = quad(integrand, -np.inf, var_val)
+    def integrand(x):
+        pdf_val = pdf(x, par)
+        if np.isscalar(x):
+            return x * float(pdf_val)
+        return x * pdf_val
+    
+    es_val, _ = quad(integrand, lower_bound, var_val, limit=100)
     return es_val / alpha
