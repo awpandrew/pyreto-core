@@ -36,9 +36,27 @@ fi
 echo -e "${GREEN}✓ Virtual environment detected${NC}"
 echo -e "${GREEN}✓ Using Python: $VENV_PYTHON${NC}"
 
+# Check for PyPI API key in environment
+if [ -n "$PYPI_PYRETO_API" ]; then
+    echo -e "${GREEN}✓ PyPI API key found in PYPI_PYRETO_API environment variable${NC}"
+    export TWINE_USERNAME="__token__"
+    export TWINE_PASSWORD="$PYPI_PYRETO_API"
+else
+    echo -e "${YELLOW}⚠ No PYPI_PYRETO_API environment variable found${NC}"
+    echo -e "${YELLOW}You will be prompted for credentials during upload${NC}"
+fi
+
 # Check Python version
 echo -e "${YELLOW}Checking Python version...${NC}"
 $VENV_PYTHON --version
+
+# Install pip if not present
+if [ ! -f "$VENV_PIP" ]; then
+    echo -e "${YELLOW}Installing pip in virtual environment...${NC}"
+    $VENV_PYTHON -m ensurepip --upgrade
+    $VENV_PYTHON -m pip install --upgrade pip
+    VENV_PIP=".venv/bin/pip"
+fi
 
 # Step 1: Install build dependencies
 echo -e "${YELLOW}Installing build dependencies...${NC}"
@@ -81,7 +99,11 @@ echo -e "${YELLOW}Upload to Test PyPI? (y/n)${NC}"
 read -r upload_test
 if [ "$upload_test" = "y" ]; then
     echo -e "${YELLOW}Uploading to Test PyPI...${NC}"
-    twine upload --repository testpypi dist/*
+    if [ -n "$PYPI_PYRETO_API" ]; then
+        twine upload --repository testpypi dist/*
+    else
+        twine upload --repository testpypi dist/*
+    fi
     echo -e "${GREEN}✓ Uploaded to Test PyPI${NC}"
     
     echo -e "${YELLOW}Test installation from Test PyPI? (y/n)${NC}"
@@ -100,15 +122,17 @@ echo -e "${RED}WARNING: This will make the release public!${NC}"
 read -r upload_prod
 if [ "$upload_prod" = "y" ]; then
     echo -e "${YELLOW}Uploading to Production PyPI...${NC}"
-    twine upload dist/*
+    if [ -n "$PYPI_PYRETO_API" ]; then
+        twine upload dist/*
+    else
+        twine upload dist/*
+    fi
     echo -e "${GREEN}✓ Uploaded to Production PyPI${NC}"
     
     echo -e "${GREEN}✓ Release completed successfully!${NC}"
     echo -e "${YELLOW}Verify at: https://pypi.org/project/pyreto/${NC}"
 else
     echo -e "${YELLOW}Build artifacts saved in dist/ for manual upload${NC}"
-    echo -e "${YELLOW}To upload manually:${NC}"
-    echo -e "${YELLOW}  twine upload dist/*${NC}"
 fi
 
 echo ""

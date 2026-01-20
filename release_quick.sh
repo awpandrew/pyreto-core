@@ -25,6 +25,24 @@ TARGET=${1:-"test"}
 
 echo "Target: $TARGET"
 
+# Check for PyPI API key
+if [ -n "$PYPI_PYRETO_API" ]; then
+    echo "✓ PyPI API key found in environment variable"
+    export TWINE_USERNAME="__token__"
+    export TWINE_PASSWORD="$PYPI_PYRETO_API"
+else
+    echo "⚠ No PYPI_PYRETO_API environment variable found"
+    echo "You will be prompted for credentials"
+fi
+
+# Install pip if not present
+if [ ! -f "$VENV_PIP" ]; then
+    echo "Installing pip in virtual environment..."
+    $VENV_PYTHON -m ensurepip --upgrade
+    $VENV_PYTHON -m pip install --upgrade pip
+    VENV_PIP=".venv/bin/pip"
+fi
+
 # Install build dependencies
 echo "Installing build dependencies..."
 $VENV_PIP install --upgrade build twine setuptools wheel
@@ -43,11 +61,19 @@ ls -lh dist/
 # Upload based on target
 if [ "$TARGET" = "test" ]; then
     echo "Uploading to Test PyPI..."
-    twine upload --repository testpypi dist/*
+    if [ -n "$PYPI_PYRETO_API" ]; then
+        TWINE_USERNAME="__token__" TWINE_PASSWORD="$PYPI_PYRETO_API" twine upload --repository testpypi dist/*
+    else
+        twine upload --repository testpypi dist/*
+    fi
     echo "✓ Uploaded to Test PyPI: https://test.pypi.org/project/pyreto/"
 elif [ "$TARGET" = "prod" ]; then
     echo "Uploading to Production PyPI..."
-    twine upload dist/*
+    if [ -n "$PYPI_PYRETO_API" ]; then
+        TWINE_USERNAME="__token__" TWINE_PASSWORD="$PYPI_PYRETO_API" twine upload dist/*
+    else
+        twine upload dist/*
+    fi
     echo "✓ Uploaded to Production PyPI: https://pypi.org/project/pyreto/"
 else
     echo "Error: Unknown target '$TARGET'"
