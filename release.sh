@@ -20,20 +20,38 @@ if [ ! -f "pyproject.toml" ]; then
     exit 1
 fi
 
+# Detect virtual environment
+VENV_PYTHON=".venv/bin/python"
+VENV_PIP=".venv/bin/pip"
+
+if [ ! -f "$VENV_PYTHON" ]; then
+    echo -e "${RED}Error: Virtual environment not found at .venv/${NC}"
+    echo -e "${YELLOW}Please create and activate a virtual environment first:${NC}"
+    echo -e "${YELLOW}  python -m venv .venv${NC}"
+    echo -e "${YELLOW}  source .venv/bin/activate${NC}"
+    echo -e "${YELLOW}  pip install -e .${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Virtual environment detected${NC}"
+echo -e "${GREEN}✓ Using Python: $VENV_PYTHON${NC}"
+
 # Check Python version
 echo -e "${YELLOW}Checking Python version...${NC}"
-python --version
+$VENV_PYTHON --version
 
 # Step 1: Install build dependencies
 echo -e "${YELLOW}Installing build dependencies...${NC}"
-pip install --upgrade build twine setuptools wheel
+$VENV_PIP install --upgrade build twine setuptools wheel
 
 # Step 2: Clean previous builds
 echo -e "${YELLOW}Cleaning previous builds...${NC}"
 rm -rf dist/ build/ *.egg-info/
 
-# Step 3: Run tests
-echo -e "${YELLOW}Running tests...${NC}"
+# Step 3: Run in-project tests
+echo -e "${YELLOW}Running in-project tests...${NC}"
+cd /home/aisandy/Documents/pyreto-lib
+source .venv/bin/activate
 python test_quick.py
 if [ $? -ne 0 ]; then
     echo -e "${RED}Tests failed. Aborting release.${NC}"
@@ -44,7 +62,7 @@ echo -e "${GREEN}✓ Tests passed${NC}"
 
 # Step 4: Build the package
 echo -e "${YELLOW}Building package...${NC}"
-python -m build
+$VENV_PYTHON -m build
 
 echo -e "${GREEN}✓ Build completed${NC}"
 
@@ -52,7 +70,13 @@ echo -e "${GREEN}✓ Build completed${NC}"
 echo -e "${YELLOW}Checking built packages...${NC}"
 ls -lh dist/
 
-# Step 6: Upload to Test PyPI (optional)
+# Step 6: Verify the package
+echo -e "${YELLOW}Verifying package...${NC}"
+$VENV_PIP install dist/pyreto-0.4.0-py3-none-any.whl
+$VENV_PYTHON -c "import pyreto as pr; print(f'Package version: {pr.__version__}')"
+$VENV_PYTHON -c "from pyreto import mc; print('MC module imported successfully')"
+
+# Step 7: Upload to Test PyPI (optional)
 echo -e "${YELLOW}Upload to Test PyPI? (y/n)${NC}"
 read -r upload_test
 if [ "$upload_test" = "y" ]; then
@@ -64,13 +88,13 @@ if [ "$upload_test" = "y" ]; then
     read -r test_install
     if [ "$test_install" = "y" ]; then
         echo -e "${YELLOW}Testing installation...${NC}"
-        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.4.0
-        python -c "import pyreto as pr; print(f'Installed version: {pr.__version__}')"
-        python -c "from pyreto import mc; print('MC module available')"
+        $VENV_PIP install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.4.0
+        $VENV_PYTHON -c "import pyreto as pr; print(f'Installed version: {pr.__version__}')"
+        $VENV_PYTHON -c "from pyreto import mc; print('MC module available')"
     fi
 fi
 
-# Step 7: Upload to Production PyPI
+# Step 8: Upload to Production PyPI
 echo -e "${YELLOW}Upload to Production PyPI? (y/n)${NC}"
 echo -e "${RED}WARNING: This will make the release public!${NC}"
 read -r upload_prod
@@ -83,6 +107,8 @@ if [ "$upload_prod" = "y" ]; then
     echo -e "${YELLOW}Verify at: https://pypi.org/project/pyreto/${NC}"
 else
     echo -e "${YELLOW}Build artifacts saved in dist/ for manual upload${NC}"
+    echo -e "${YELLOW}To upload manually:${NC}"
+    echo -e "${YELLOW}  twine upload dist/*${NC}"
 fi
 
 echo ""
