@@ -51,6 +51,8 @@ The data shows realistic SPY characteristics:
 
 ## Usage
 
+### Basic Risk Analysis
+
 ```python
 import pyreto as pr
 
@@ -62,6 +64,61 @@ es = pr.student_t.es(par, alpha=0.01)
 
 # Calculate 5% Value at Risk
 var = pr.student_t.var(par, alpha=0.05)
+```
+
+### Monte Carlo Simulation (Multi-Asset)
+
+```python
+import pyreto as pr
+import numpy as np
+
+# Define margins for each asset
+margins = {
+    "SPY": {"type": "student_t", "par": {"df": 3.5, "loc": 0.0, "scale": 0.012}},
+    "TLT": {"type": "student_t", "par": {"df": 5.0, "loc": 0.0, "scale": 0.008}},
+    "GLD": {"type": "nig", "par": {"alpha": 2.0, "beta": 0.0, "delta": 0.01, "mu": 0.0, "gamma": 2.0}}
+}
+
+# Simulate 50,000 correlated returns via Gaussian copula
+mc_returns = pr.mc.simulate("gaussian", margins, n_draws=50_000, seed=42)
+
+# Build portfolio (60% SPY, 30% TLT, 10% GLD)
+weights = np.array([0.6, 0.3, 0.1])
+port_returns = pr.mc.simulate_portfolio(weights, mc_returns)
+
+# Calculate portfolio risk
+var_99 = np.percentile(port_returns, 1)  # 1% VaR
+es_99 = np.mean(port_returns[port_returns <= var_99])  # 1% ES
+
+print(f"Portfolio VaR(1%): {var_99:.4f} ({var_99*100:.2f}%)")
+print(f"Portfolio ES(1%): {es_99:.4f} ({es_99*100:.2f}%)")
+```
+
+### t-Copula for Heavier Tails
+
+```python
+# Use t-copula for more realistic tail dependence
+t_margins = {
+    "SPY": {"type": "student_t", "par": {"df": 4.0, "loc": 0.0, "scale": 0.01}}
+}
+
+# t-copula with 5 degrees of freedom (canonical choice)
+t_returns = pr.mc.simulate("t", t_margins, n_draws=50_000, seed=42)
+t_port = pr.mc.simulate_portfolio(np.array([1.0]), t_returns)
+
+# t-copula produces more extreme tail events than Gaussian
+t_var_99 = np.percentile(t_port, 1)
+print(f"t-copula VaR(1%): {t_var_99:.4f} ({t_var_99*100:.2f}%)")
+```
+
+### Reproducible Results
+
+```python
+# Same seed produces identical results
+sim1 = pr.mc.simulate("gaussian", margins, n_draws=10_000, seed=123)
+sim2 = pr.mc.simulate("gaussian", margins, n_draws=10_000, seed=123)
+
+assert (sim1["SPY"] == sim2["SPY"]).all()  # Exactly identical
 ```
 
 ## API
