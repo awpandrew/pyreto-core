@@ -245,3 +245,26 @@ pr.student_t.fit([])  # ValueError
 - `gpd`: Generalised Pareto Distribution (Peaks Over Threshold)
 
 All models use identical function signatures.
+### R‑vine Copulas (Multi‑asset dependence modelling)
+
+*Requires:* `pip install pyvinecop`
+
+```python
+import pyreto as pr
+import polars as pl
+import numpy as np
+
+# Load three‑asset returns (included CSV) 
+df = pl.read_csv("spy_returns.csv").select(["SPY", "TLT", "VIX"])
+
+# Fit R‑vine, select best family per pair via AIC
+vine = pr.vine.fit(df, family_set=["gumbel", "joe", "t"], method="mle")
+print(f"AIC = {vine['aic']:.2f}")
+
+# Simulate 50 k uniforms from the vine
+u = pr.vine.simulate(vine, n_draws=50_000, seed=42)
+
+# Upper‑tail‑dependence (e.g. SPY–VIX in crisis)
+lambda_U = pr.vine.upper_tail_dependence(vine, pair=("asset_0", "asset_2"))
+print(f"λ_U(SPY,VIX) = {lambda_U:.3f}")
+```
