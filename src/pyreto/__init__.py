@@ -9,5 +9,6 @@ from .distributions import nig
 from .distributions import gpd
 from . import mc
 from . import vine
+from . import bootstrap
 
-__all__ = ["student_t", "alpha_stable", "nig", "gpd", "mc", "vine"]
+__all__ = ["student_t", "alpha_stable", "nig", "gpd", "mc", "vine", "bootstrap"]
