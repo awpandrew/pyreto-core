@@ -3,7 +3,7 @@ import warnings
 from typing import Sequence
 
 
-def _validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
+def validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
     """
     Convert `returns` to a 1-D float64 NumPy array and run basic checks.
 
