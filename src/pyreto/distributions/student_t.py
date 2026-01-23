@@ -3,13 +3,7 @@
 import numpy as np
 from scipy.stats import t as student_t
 from scipy.integrate import quad
-from .util import validate_returns
-
-
-def _validate_alpha(alpha):
-    """Validate alpha parameter."""
-    if not (0 < alpha < 1):
-        raise ValueError("Alpha must be between 0 and 1")
+from .util import validate_returns, validate_alpha
 
 
 def fit(returns):
@@ -99,7 +93,7 @@ def var(alpha, par):
     float
         VaR value
     """
-    _validate_alpha(alpha)
+    validate_alpha(alpha)
     result = ppf(alpha, par)
     return float(result) if np.isscalar(result) else float(result[0])
 
@@ -119,7 +113,7 @@ def es(alpha, par):
     float
         ES value
     """
-    _validate_alpha(alpha)
+    validate_alpha(alpha)
 
     # For Student's T, we can use numerical integration with better bounds
     var_val = var(alpha, par)
