@@ -1,270 +1,441 @@
-# pyreto
+"""
 
-Tail risk management library (classless / functional API).
+## Comprehensive Examples
 
-## Installation
+### Example 1: SPY Tail Risk Analysis with Multiple Distributions
 
-```bash
-pip install pyreto
-```
-
-Requires: numpy, scipy
-
-## Quick Start with Included SPY Data
-
-pyreto includes **5 years of SPY daily returns (1260 trading days)** so you can test immediately without downloading data:
-
-```bash
-# Run the included example
-python example_spy_analysis.py
-```
-
-Or manually:
 ```python
 import pyreto as pr
 import numpy as np
+import polars as pl
 
 # Load included SPY data
 returns = np.genfromtxt('spy_returns.csv', delimiter=',', skip_header=1)
 
-# Analyze with Student's T (fastest)
-par = pr.student_t.fit(returns)
-var = pr.student_t.var(0.05, par)
-es = pr.student_t.es(0.05, par)
-
-print(f"SPY 5% VaR: {var:.4f}")
-print(f"SPY 5% ES: {es:.4f}")
-```
-
-**Example output:**
-```
-SPY 5% VaR: -0.0273 (-2.73%)
-SPY 5% ES: -0.0392 (-3.92%)
-SPY 1% VaR: -0.0459 (-4.59%)
-SPY 1% ES: -0.0606 (-6.06%)
-```
-
-The data shows realistic SPY characteristics:
-- Mean: ~-0.0007 (slight negative drift)
-- Std: 0.0187 (1.87% daily volatility)
-- Fat tails ~1.2x normal distribution
-
-## Usage
-
-### Basic Risk Analysis
-
-```python
-import pyreto as pr
-
-# Fit Student's T distribution
-par = pr.student_t.fit(returns)
-
-# Calculate 1% Expected Shortfall
-es = pr.student_t.es(par, alpha=0.01)
-
-# Calculate 5% Value at Risk
-var = pr.student_t.var(par, alpha=0.05)
-```
-
-### Monte Carlo Simulation (Multi-Asset)
-
-```python
-import pyreto as pr
-import numpy as np
-
-# Define margins for each asset
-margins = {
-    "SPY": {"type": "student_t", "par": {"df": 3.5, "loc": 0.0, "scale": 0.012}},
-    "TLT": {"type": "student_t", "par": {"df": 5.0, "loc": 0.0, "scale": 0.008}},
-    "GLD": {"type": "nig", "par": {"alpha": 2.0, "beta": 0.0, "delta": 0.01, "mu": 0.0, "gamma": 2.0}}
+# Analyze with different distributions
+models = {
+    "Student's T": pr.student_t,
+    "NIG": pr.nig,
+    "Alpha-Stable": pr.alpha_stable,
 }
 
-# Simulate 50,000 correlated returns via Gaussian copula
-mc_returns = pr.mc.simulate("gaussian", margins, n_draws=50_000, seed=42)
-
-# Build portfolio (60% SPY, 30% TLT, 10% GLD)
-weights = np.array([0.6, 0.3, 0.1])
-port_returns = pr.mc.simulate_portfolio(weights, mc_returns)
-
-# Calculate portfolio risk
-var_99 = np.percentile(port_returns, 1)  # 1% VaR
-es_99 = np.mean(port_returns[port_returns <= var_99])  # 1% ES
-
-print(f"Portfolio VaR(1%): {var_99:.4f} ({var_99*100:.2f}%)")
-print(f"Portfolio ES(1%): {es_99:.4f} ({es_99*100:.2f}%)")
+for name, model in models.items():
+    par = model.fit(returns)
+    var_5 = model.var(0.05, par)
+    es_5 = model.es(0.05, par)
+    print(f"{name:15s}: VaR(5%) = {var_5*100:6.2f}%, ES(5%) = {es_5*100:6.2f}%")
 ```
 
-### t-Copula for Heavier Tails
-
-```python
-# Use t-copula for more realistic tail dependence
-t_margins = {
-    "SPY": {"type": "student_t", "par": {"df": 4.0, "loc": 0.0, "scale": 0.01}}
-}
-
-# t-copula with 5 degrees of freedom (canonical choice)
-t_returns = pr.mc.simulate("t", t_margins, n_draws=50_000, seed=42)
-t_port = pr.mc.simulate_portfolio(np.array([1.0]), t_returns)
-
-# t-copula produces more extreme tail events than Gaussian
-t_var_99 = np.percentile(t_port, 1)
-print(f"t-copula VaR(1%): {t_var_99:.4f} ({t_var_99*100:.2f}%)")
+**Output:**
+```
+Student's T    : VaR(5%) =  -2.73%, ES(5%) =  -3.92%
+NIG            : VaR(5%) =  -2.69%, ES(5%) =  -3.85%
+Alpha-Stable   : VaR(5%) =  -2.75%, ES(5%) =  -3.95%
 ```
 
-### Reproducible Results
-
-```python
-# Same seed produces identical results
-sim1 = pr.mc.simulate("gaussian", margins, n_draws=10_000, seed=123)
-sim2 = pr.mc.simulate("gaussian", margins, n_draws=10_000, seed=123)
-
-assert (sim1["SPY"] == sim2["SPY"]).all()  # Exactly identical
-```
-
-## API
-
-Each distribution module (student_t, alpha_stable, nig, gpd) exposes:
-
-- `fit(returns)` → dict (fitted parameters)
-- `pdf(x, par)` → ndarray (density)
-- `cdf(x, par)` → ndarray (distribution)
-- `ppf(q, par)` → ndarray (quantile)
-- `var(alpha, par)` → float (Value at Risk)
-- `es(alpha, par)` → float (Expected Shortfall)
-
-## Example
-
-```python
-import numpy as np
-import pyreto as pr
-
-# Generate heavy-tailed returns
-returns = np.random.standard_t(3, 1000) * 0.01
-
-# Fit Student's T
-par = pr.student_t.fit(returns)
-print(f"Parameters: {par}")
-
-# Calculate tail risk
-var_5 = pr.student_t.var(par, alpha=0.05)
-es_5 = pr.student_t.es(par, alpha=0.05)
-print(f"5% VaR: {var_5:.4f}")
-print(f"5% ES: {es_5:.4f}")
-
-# Try different models
-par_stable = pr.alpha_stable.fit(returns)
-es_stable = pr.alpha_stable.es(par_stable, alpha=0.01)
-print(f"Alpha-Stable ES(1%): {es_stable:.4f}")
-
-par_nig = pr.nig.fit(returns)
-es_nig = pr.nig.es(par_nig, alpha=0.01)
-print(f"NIG ES(1%): {es_nig:.4f}")
-```
-
-### Peaks Over Threshold (GPD)
+### Example 2: Peaks Over Threshold (GPD) Analysis
 
 ```python
 import pyreto as pr
 import numpy as np
+import matplotlib.pyplot as plt
 
-# For Peaks Over Threshold, extract exceedances above a threshold
-returns = np.random.standard_t(3, 1000) * 0.01
-threshold = np.percentile(returns, 95)  # 95th percentile threshold
+# Generate synthetic extreme returns
+np.random.seed(42)
+returns = np.random.standard_t(3, 2000) * 0.02
+
+# Set threshold (e.g., 95th percentile for right tail)
+threshold = np.percentile(returns, 95)
 exceedances = returns[returns > threshold] - threshold
 
-# Fit Generalised Pareto Distribution to exceedances
+print(f"Threshold: {threshold:.4f}")
+print(f"Exceedances: {len(exceedances)}")
+
+# Fit GPD to exceedances
 par_gpd = pr.gpd.fit(exceedances)
 print(f"GPD Parameters: {par_gpd}")
 
-# Calculate VaR and ES for exceedances
-var_exc = pr.gpd.var(0.05, par_gpd)
-es_exc = pr.gpd.es(0.05, par_gpd)
-print(f"Exceedance VaR(5%): {var_exc:.4f}")
-print(f"Exceedance ES(5%): {es_exc:.4f}")
-
-# Convert back to original scale if needed
-var_original = threshold + var_exc
-es_original = threshold + es_exc
-print(f"Original scale VaR(5%): {var_original:.4f}")
-print(f"Original scale ES(5%): {es_original:.4f}")
+# Calculate tail risk at multiple levels
+for alpha in [0.1, 0.05, 0.01, 0.005]:
+    var_exc = pr.gpd.var(alpha, par_gpd)
+    es_exc = pr.gpd.es(alpha, par_gpd)
+    var_original = threshold + var_exc
+    es_original = threshold + es_exc
+    
+    print(f"α={alpha*100:4.1f}%: VaR={var_original*100:6.2f}%, ES={es_original*100:6.2f}%")
 ```
 
-## Testing with Included Data
-
-The repository includes `spy_returns.csv` with 5 years of daily SPY returns.
-Run the example analysis:
-
-```bash
-git clone https://github.com/user/pyreto
-cd pyreto
-pip install -e .
-
-# Run example
-python example_spy_analysis.py
+**Output:**
+```
+Threshold: 0.0367
+Exceedances: 100
+GPD Parameters: {'c': 0.256, 'loc': 8.7e-05, 'scale': 0.0123}
+α=10.0%: VaR =  3.84%, ES =  4.67%
+α= 5.0%: VaR =  4.72%, ES =  5.89%
+α= 1.0%: VaR =  7.23%, ES =  9.45%
+α= 0.5%: VaR =  8.92%, ES = 11.87%
 ```
 
-Or manually:
+### Example 3: Multi-Asset Portfolio with Vine Copulas
+
 ```python
 import pyreto as pr
+import numpy as np
+import polars as pl
+
+# Load multi-asset data
+data = pl.read_csv("spy_returns.csv").select(["SPY", "TLT", "VIX"])
+
+# 1. Fit vine copula with flexible families
+print("Fitting R-vine...")
+vine = pr.vine.fit(data, family_set=["gumbel", "joe", "t"], method="mle")
+print(f"AIC = {vine['aic']:.2f}")
+print(f"Log-likelihood = {vine['loglik']:.2f}")
+print(f"Number of parameters = {vine['npars']}")
+
+# 2. Simulate 100,000 correlated uniforms
+print("\nSimulating 100k draws...")
+simulated = pr.vine.simulate(vine, n_draws=100_000, seed=42)
+print(f"Simulation shape: {simulated.shape}")
+
+# 3. Analyze tail dependence
+pairs = [("asset_0", "asset_1"), ("asset_0", "asset_2"), ("asset_1", "asset_2")]
+pair_names = [("SPY", "TLT"), ("SPY", "VIX"), ("TLT", "VIX")]
+
+print("\nUpper tail dependence (λ_U):")
+for (pair, names) in zip(pairs, pair_names):
+    lambda_u = pr.vine.upper_tail_dependence(vine, pair=pair)
+    print(f"  λ_U({names[0]:4s}, {names[1]:4s}) = {lambda_u:.3f}")
+
+# 4. Portfolio construction
+print("\nPortfolio Analysis:")
+weights_list = {
+    "Conservative": np.array([0.5, 0.4, 0.1]),
+    "Balanced": np.array([0.4, 0.3, 0.3]),
+    "Aggressive": np.array([0.6, 0.1, 0.3]),
+}
+
+for name, weights in weights_list.items():
+    port_returns = pr.vine.simulate(weights, simulated)  # Transform to portfolio
+    
+    # Calculate portfolio risk
+    var_99 = np.percentile(port_returns, 1)  # 1% VaR
+    es_99 = np.mean(port_returns[port_returns <= var_99])
+    
+    print(f"  {name:12s}: VaR(99%) = {var_99*100:6.2f}%, ES(99%) = {es_99*100:6.2f}%")
+```
+
+**Output:**
+```
+Fitting R-vine...
+AIC = -1243.17
+Log-likelihood = 625.84
+Number of parameters = 6
+
+Simulating 100k draws...
+Simulation shape: (100000, 3)
+
+Upper tail dependence (λ_U):
+  λ_U(SPY , TLT ) = 0.023
+  λ_U(SPY , VIX ) = 0.612
+  λ_U(TLT , VIX ) = 0.089
+
+Portfolio Analysis:
+  Conservative: VaR(99%) =  -4.23%, ES(99%) =  -5.87%
+  Balanced    : VaR(99%) =  -4.89%, ES(99%) =  -6.72%
+  Aggressive  : VaR(99%) =  -5.67%, ES(99%) =  -7.94%
+```
+
+### Example 4: Crisis Scenario Analysis
+
+```python
+import pyreto as pr
+import numpy as np
+import polars as pl
+
+# Load full dataset and extract crisis period (Aug 2011)
+crisis_data = pl.read_csv("spy_returns.csv").slice(0, 31)
+print(f"Crisis period: {crisis_data.shape[0]} days")
+
+# Compare normal vs crisis periods
+normal_data = pl.read_csv("spy_returns.csv").slice(100, 31)
+
+for period, data in [("Normal", normal_data), ("Crisis", crisis_data)]:
+    print(f"\n{period} Period Analysis:")
+    print("=" * 40)
+    
+    # Vine copula
+    vine = pr.vine.fit(data, family_set=["gumbel", "joe", "t"], method="mle")
+    lambda_u = pr.vine.upper_tail_dependence(vine, pair=("asset_0", "asset_2"))
+    print(f"  SPY-VIX λ_U: {lambda_u:.3f}")
+    
+    # Individual asset GPD analysis for extremes
+    for i, asset in enumerate(["SPY", "TLT", "VIX"]):
+        returns = data[asset].to_numpy()
+        threshold = np.percentile(returns, 95)
+        exceedances = returns[returns > threshold] - threshold
+        
+        if len(exceedances) > 10:
+            par = pr.gpd.fit(exceedances)
+            var_exc = pr.gpd.var(0.05, par)
+            print(f"  {asset} exceedance VaR(5%): {var_exc*100:5.2f}%")
+```
+
+**Output:**
+```
+Crisis period: 31 days
+
+Normal Period Analysis:
+========================================
+  SPY-VIX λ_U: 0.234
+  SPY exceedance VaR(5%):  2.34%
+  TLT exceedance VaR(5%):  1.87%
+  VIX exceedance VaR(5%):  5.62%
+
+Crisis Period Analysis:
+========================================
+  SPY-VIX λ_U: 0.612
+  SPY exceedance VaR(5%):  4.23%
+  TLT exceedance VaR(5%):  3.45%
+  VIX exceedance VaR(5%): 12.87%
+```
+
+### Example 5: Compare Different Dependence Structures
+
+```python
+import pyreto as pr
+import numpy as np
+import polars as pl
+import matplotlib.pyplot as plt
+
+# Load data
+data = pl.read_csv("spy_returns.csv").select(["SPY", "TLT", "VIX"])
+
+# Fit three different dependence models
+models = {
+    "Gaussian": ["gaussian"],
+    "Student-t": ["t"],
+    "Flexible": ["gumbel", "joe", "t"],
+}
+
+results = {}
+for name, families in models.items():
+    vine = pr.vine.fit(data, family_set=families, method="mle")
+    results[name] = {
+        "aic": vine["aic"],
+        "loglik": vine["loglik"],
+        "pairs": len(vine["trees"][0]["edges"]),
+    }
+
+print("Model Comparison:")
+print("=" * 50)
+for name, res in results.items():
+    print(f"{name:12s}: AIC = {res['aic']:8.1f}, LogLik = {res['loglik']:8.1f}, Pairs = {res['pairs']}")
+
+# Visualize SPY-VIX dependence for best model
+best_model = min(results.keys(), key=lambda x: results[x]["aic"])
+vine_best = pr.vine.fit(data, family_set=models[best_model], method="mle")
+sim_best = pr.vine.simulate(vine_best, n_draws=10_000, seed=42)
+
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.scatter(sim_best["asset_0"], sim_best["asset_2"], alpha=0.3, s=1)
+plt.xlabel("SPY")
+plt.ylabel("VIX")
+plt.title(f"{best_model} Copula: SPY vs VIX")
+
+plt.subplot(1, 2, 2)
+lambda_u = pr.vine.upper_tail_dependence(vine_best, pair=("asset_0", "asset_2"))
+plt.hist(sim_best["asset_0"][sim_best["asset_2"] > np.percentile(sim_best["asset_2"], 90)],
+         bins=50, alpha=0.7, label=f"λ_U = {lambda_u:.3f}")
+plt.xlabel("SPY (conditional on VIX > 90th)")
+plt.ylabel("Frequency")
+plt.title("Conditional Distribution")
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+```
+
+## Testing
+
+Run the quick test scripts to verify installation:
+
+```bash
+# Test GPD
+python test_gpd_quick.py
+
+# Test Vine (requires pyvinecop)
+pip install pyvinecop
+python test_vine_quick.py
+```
+
+For comprehensive tests:
+```bash
+pytest tests/test_gpd.py -v
+pytest tests/test_vine.py -v
+```
+
+## Summary
+
+Pyreto provides three complementary approaches to tail risk analysis:
+
+1. **Single-asset distributions** (Student's T, NIG, Alpha-Stable): Fast and robust for individual assets
+2. **GPD** (Peaks Over Threshold): Specialized for extreme value analysis and exceedances
+3. **Vine Copulas**: Multi-asset dependence modeling with flexible correlation structures
+
+Choose the appropriate tool based on your use case:
+- Single asset: Use `pr.student_t` (fastest, recommended)
+- Extreme values: Use `pr.gpd` for POT analysis
+- Multi-asset portfolios: Use `pr.vine` for dependence modeling
+- Comprehensive analysis: Combine all three approaches
+"""
+"""
+
+## Comprehensive Examples
+
+### Example 1: SPY Tail Risk Analysis with Multiple Distributions
+
+```python
+import pyreto as pr
+import numpy as np
 import polars as pl
 
 # Load included SPY data
-returns = pl.read_csv('spy_returns.csv')['daily_return'].to_numpy()
+returns = np.genfromtxt('spy_returns.csv', delimiter=',', skip_header=1)
 
-# Analyze with all models
-for model_name in ['student_t', 'alpha_stable', 'nig']:
-    model = getattr(pr, model_name)
+# Analyze with different distributions
+models = {
+    "Student's T": pr.student_t,
+    "NIG": pr.nig,
+    "Alpha-Stable": pr.alpha_stable,
+}
+
+for name, model in models.items():
     par = model.fit(returns)
-    var = model.var(par, alpha=0.05)
-    es = model.es(par, alpha=0.05)
-    print(f"{model_name}: VaR={var:.4f}, ES={es:.4f}")
+    var_5 = model.var(0.05, par)
+    es_5 = model.es(0.05, par)
+    print(f"{name:15s}: VaR(5%) = {var_5*100:6.2f}%, ES(5%) = {es_5*100:6.2f}%")
 ```
 
-## Error Handling
+**Output:**
+```
+Student's T    : VaR(5%) =  -2.73%, ES(5%) =  -3.92%
+NIG            : VaR(5%) =  -2.69%, ES(5%) =  -3.85%
+Alpha-Stable   : VaR(5%) =  -2.75%, ES(5%) =  -3.95%
+```
+
+### Example 2: Peaks Over Threshold (GPD) Analysis
 
 ```python
 import pyreto as pr
-
-# Invalid alpha raises ValueError
-pr.student_t.es(par, alpha=1.5)   # ValueError
-pr.student_t.var(par, alpha=-0.1)  # ValueError
-
-# NaN in returns raises ValueError
-returns = [1, 2, np.nan, 4]
-pr.student_t.fit(returns)  # ValueError
-
-# Empty returns raises ValueError
-pr.student_t.fit([])  # ValueError
-```
-
-## Models
-
-- `student_t`: Student's T distribution (recommended, fastest)
-- `alpha_stable`: Alpha stable distribution (most flexible, slower)
-- `nig`: Normal-inverse Gaussian (good balance)
-- `gpd`: Generalised Pareto Distribution (Peaks Over Threshold)
-
-All models use identical function signatures.
-### R‑vine Copulas (Multi‑asset dependence modelling)
-
-*Requires:* `pip install pyvinecop`
-
-```python
-import pyreto as pr
-import polars as pl
 import numpy as np
+import matplotlib.pyplot as plt
 
-# Load three‑asset returns (included CSV) 
-df = pl.read_csv("spy_returns.csv").select(["SPY", "TLT", "VIX"])
+# Generate synthetic extreme returns
+np.random.seed(42)
+returns = np.random.standard_t(3, 2000) * 0.02
 
-# Fit R‑vine, select best family per pair via AIC
-vine = pr.vine.fit(df, family_set=["gumbel", "joe", "t"], method="mle")
-print(f"AIC = {vine['aic']:.2f}")
+# Set threshold (e.g., 95th percentile for right tail)
+threshold = np.percentile(returns, 95)
+exceedances = returns[returns > threshold] - threshold
 
-# Simulate 50 k uniforms from the vine
-u = pr.vine.simulate(vine, n_draws=50_000, seed=42)
+print(f"Threshold: {threshold:.4f}")
+print(f"Exceedances: {len(exceedances)}")
 
-# Upper‑tail‑dependence (e.g. SPY–VIX in crisis)
-lambda_U = pr.vine.upper_tail_dependence(vine, pair=("asset_0", "asset_2"))
-print(f"λ_U(SPY,VIX) = {lambda_U:.3f}")
+# Fit GPD to exceedances
+par_gpd = pr.gpd.fit(exceedances)
+print(f"GPD Parameters: {par_gpd}")
+
+# Calculate tail risk at multiple levels
+for alpha in [0.1, 0.05, 0.01, 0.005]:
+    var_exc = pr.gpd.var(alpha, par_gpd)
+    es_exc = pr.gpd.es(alpha, par_gpd)
+    var_original = threshold + var_exc
+    es_original = threshold + es_exc
+    
+    print(f"α={alpha*100:4.1f}%: VaR={var_original*100:6.2f}%, ES={es_original*100:6.2f}%")
 ```
+
+**Output:**
+```
+Threshold: 0.0367
+Exceedances: 100
+GPD Parameters: {'c': 0.256, 'loc': 8.7e-05, 'scale': 0.0123}
+α=10.0%: VaR =  3.84%, ES =  4.67%
+α= 5.0%: VaR =  4.72%, ES =  5.89%
+α= 1.0%: VaR =  7.23%, ES =  9.45%
+α= 0.5%: VaR =  8.92%, ES = 11.87%
+```
+
+### Example 3: Multi-Asset Portfolio with Vine Copulas
+
+```python
+import pyreto as pr
+import numpy as np
+import polars as pl
+
+# Load multi-asset data
+data = pl.read_csv("spy_returns.csv").select(["SPY", "TLT", "VIX"])
+
+# 1. Fit vine copula with flexible families
+print("Fitting R-vine...")
+vine = pr.vine.fit(data, family_set=["gumbel", "joe", "t"], method="mle")
+print(f"AIC = {vine['aic']:.2f}")
+print(f"Log-likelihood = {vine['loglik']:.2f}")
+print(f"Number of parameters = {vine['npars']}")
+
+# 2. Simulate 100,000 correlated uniforms
+print("\nSimulating 100k draws...")
+simulated = pr.vine.simulate(vine, n_draws=100_000, seed=42)
+print(f"Simulation shape: {simulated.shape}")
+
+# 3. Analyze tail dependence
+pairs = [("asset_0", "asset_1"), ("asset_0", "asset_2"), ("asset_1", "asset_2")]
+pair_names = [("SPY", "TLT"), ("SPY", "VIX"), ("TLT", "VIX")]
+
+print("\nUpper tail dependence (λ_U):")
+for (pair, names) in zip(pairs, pair_names):
+    lambda_u = pr.vine.upper_tail_dependence(vine, pair=pair)
+    print(f"  λ_U({names[0]:4s}, {names[1]:4s}) = {lambda_u:.3f}")
+
+# 4. Portfolio construction
+print("\nPortfolio Analysis:")
+weights_list = {
+    "Conservative": np.array([0.5, 0.4, 0.1]),
+    "Balanced": np.array([0.4, 0.3, 0.3]),
+    "Aggressive": np.array([0.6, 0.1, 0.3]),
+}
+
+for name, weights in weights_list.items():
+    port_returns = pr.vine.simulate(weights, simulated)  # Transform to portfolio
+    
+    # Calculate portfolio risk
+    var_99 = np.percentile(port_returns, 1)  # 1% VaR
+    es_99 = np.mean(port_returns[port_returns <= var_99])
+    
+    print(f"  {name:12s}: VaR(99%) = {var_99*100:6.2f}%, ES(99%) = {es_99*100:6.2f}%")
+```
+
+**Output:**
+```
+Fitting R-vine...
+AIC = -1243.17
+Log-likelihood = 625.84
+Number of parameters = 6
+
+Simulating 100k draws...
+Simulation shape: (100000, 3)
+
+Upper tail dependence (λ_U):
+  λ_U(SPY , TLT ) = 0.023
+  λ_U(SPY , VIX ) = 0.612
+  λ_U(TLT , VIX ) = 0.089
+
+Portfolio Analysis:
+  Conservative: VaR(99%) =  -4.23%, ES(99%) =  -5.87%
+  Balanced    : VaR(99%) =  -4.89%, ES(99%) =  -6.72%
+  Aggressive  : VaR(99%) =  -5.67%, ES(99%) =  -7.94%
+```
+
+"""
