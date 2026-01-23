@@ -1,14 +1,14 @@
-# Pyreto v0.4.0 Release Checklist
+# Pyreto v0.5.0 Release Checklist
 
 ## 📦 Package Metadata
 
-- ✅ **Version**: 0.4.0 (updated in pyproject.toml and __init__.py)
+- ✅ **Version**: 0.5.0 (updated in pyproject.toml and __init__.py)
 - ✅ **Description**: "Tail risk management library with Monte Carlo simulation (classless functional API)"
 - ✅ **Dependencies**: numpy>=1.20.0, scipy>=1.10.0, polars>=0.19.0
 - ✅ **License**: MIT
 - ✅ **Python requirement**: >=3.8
 
-## 🎯 New Features in v0.4.0
+## 🎯 New Features in v0.5.0
 
 ### Monte Carlo Simulation Engine (`pyreto.mc`)
 - ✅ `simulate(copula, margins, n_draws, seed=None)` - Generate correlated returns
@@ -95,13 +95,13 @@ Before publishing to PyPI, verify:
 ```bash
 grep version pyproject.toml
 grep version src/pyreto/__init__.py
-# Both should show 0.4.0
+# Both should show 0.5.0
 ```
 
 ### 2. Import Test
 ```bash
 python -c "import pyreto as pr; print(pr.__version__)"
-# Should print: 0.4.0
+# Should print: 0.5.0
 ```
 
 ### 3. MC Module Import
@@ -131,13 +131,13 @@ python -m build
 
 # Check files created
 ls -lh dist/
-# Should show: pyreto-0.4.0-py3-none-any.whl and pyreto-0.4.0.tar.gz
+# Should show: pyreto-0.5.0-py3-none-any.whl and pyreto-0.5.0.tar.gz
 ```
 
 ### Test Installation
 ```bash
 # Install from wheel
-pip install dist/pyreto-0.4.0-py3-none-any.whl
+pip install dist/pyreto-0.5.0-py3-none-any.whl
 
 # Verify installation
 python -c "import pyreto as pr; print(f'Version: {pr.__version__}')"
@@ -170,18 +170,18 @@ twine upload --repository testpypi dist/*
 twine upload dist/*
 
 # 5. Verify
-pip install pyreto==0.4.0
+pip install pyreto==0.5.0
 python -c "import pyreto as pr; print(f'Installed: v{pr.__version__}')"
 ```
 
 ## 📊 Release Impact
 
-### Before v0.4.0
+### Before v0.5.0
 - Basic risk analysis with 3 distributions
 - Single-asset focus
 - Some bugs (fixed in classless branch)
 
-### After v0.4.0
+### After v0.5.0
 - ✅ Multi-asset portfolio risk analysis
 - ✅ Monte Carlo simulation engine
 - ✅ Copula-based correlation modeling
@@ -235,7 +235,7 @@ After release:
 ## ✨ Release Complete When
 
 - [ ] Package uploaded to PyPI
-- [ ] Version 0.4.0 visible on https://pypi.org/project/pyreto/
+- [ ] Version 0.5.0 visible on https://pypi.org/project/pyreto/
 - [ ] Installation test passes
 - [ ] MC module imports correctly
 - [ ] Quick test passes
@@ -256,6 +256,6 @@ After release:
 
 **Status**: ✅ Ready for release
 **Branch**: mc-core (merged with classless)
-**Version**: 0.4.0
+**Version**: 0.5.0
 **Release Date**: [To be filled]
 **Released By**: [To be filled]

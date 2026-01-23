@@ -1,6 +1,6 @@
 """Pyreto: Tail risk management library with Monte Carlo simulation (classless functional API)."""
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # Make distributions available at pyreto.*
 from .distributions import student_t
