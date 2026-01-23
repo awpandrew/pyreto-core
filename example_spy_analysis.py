@@ -18,8 +18,10 @@ import time
 
 def load_spy_returns():
     """Load SPY returns from included CSV file."""
-    # Use numpy to load CSV (no external dependencies)
-    returns = np.genfromtxt('spy_returns.csv', delimiter=',', skip_header=1)
+    # Use Polars for fastest I/O (Rust backend)
+    import polars as pl
+    df = pl.read_csv('spy_returns.csv')
+    returns = df[df.columns[1]].to_numpy()
     return returns
 
 
