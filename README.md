@@ -17,6 +17,7 @@ models = {
     "Student's T": pr.student_t,
     "NIG": pr.nig,
     "Alpha-Stable": pr.alpha_stable,
+    "GeneralizedPareto": pr.gpd,
 }
 
 for name, model in models.items():
