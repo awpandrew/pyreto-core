@@ -5,13 +5,7 @@ from scipy.optimize import minimize
 from scipy.special import kv as bessel_k
 from scipy.integrate import quad
 from scipy.optimize import brentq
-from .util import validate_returns
-
-
-def _validate_alpha(alpha):
-    """Validate alpha parameter."""
-    if not (0 < alpha < 1):
-        raise ValueError("Alpha must be between 0 and 1")
+from .util import validate_returns, validate_alpha
 
 
 def _pdf_single(x, alpha, beta, delta, mu):
@@ -152,7 +146,7 @@ def var(alpha, par):
     float
         VaR value
     """
-    _validate_alpha(alpha)
+    validate_alpha(alpha)
     return ppf(alpha, par)[0]
 
 
@@ -171,7 +165,7 @@ def es(alpha, par):
     float
         ES value
     """
-    _validate_alpha(alpha)
+    validate_alpha(alpha)
     var_val = var(alpha, par)
 
     def integrand(x):

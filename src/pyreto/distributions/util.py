@@ -37,3 +37,8 @@ def validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
         )
 
     return returns
+
+
+def validate_alpha(alpha: float):
+    if not (0 < alpha < 1):
+        raise ValueError("Alpha must be between 0 and 1")
