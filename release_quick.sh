@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick release script for pyreto v0.4.0
+# Quick release script for pyreto v0.5.0
 # Usage: ./release_quick.sh [test|prod]
 #   test - Upload to Test PyPI only
 #   prod - Upload to Production PyPI only
@@ -7,7 +7,7 @@
 set -e
 
 echo "=========================================="
-echo "Pyreto Quick Release v0.4.0"
+echo "Pyreto Quick Release v0.5.0"
 echo "=========================================="
 
 # Check virtual environment

@@ -7,7 +7,7 @@
 ```bash
 git status
 git add .
-git commit -m "Release v0.4.0: Add Monte Carlo simulation engine"
+git commit -m "Release v0.5.0: Add Monte Carlo simulation engine"
 ```
 
 ### 2. Build the package
@@ -20,15 +20,15 @@ pip install --upgrade build setuptools wheel
 python -m build
 
 # This creates:
-# - dist/pyreto-0.4.0-py3-none-any.whl
-# - dist/pyreto-0.4.0.tar.gz
+# - dist/pyreto-0.5.0-py3-none-any.whl
+# - dist/pyreto-0.5.0.tar.gz
 ```
 
 ### 3. Test the build locally
 
 ```bash
 # Install from the built wheel
-pip install dist/pyreto-0.4.0-py3-none-any.whl
+pip install dist/pyreto-0.5.0-py3-none-any.whl
 
 # Test import
 python -c "import pyreto as pr; print(pr.__version__)"
@@ -54,7 +54,7 @@ twine upload --repository testpypi dist/*
 # - Password: <your-test-pypi-api-token>
 
 # Test installation from Test PyPI
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.4.0
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.5.0
 ```
 
 ### 5. Upload to Production PyPI
@@ -68,7 +68,7 @@ twine upload dist/*
 # - Password: <your-pypi-api-token>
 
 # Verify installation
-pip install pyreto==0.4.0
+pip install pyreto==0.5.0
 python -c "import pyreto as pr; print(f'Pyreto v{pr.__version__} installed successfully')"
 python -c "from pyreto import mc; print('MC module available')"
 ```
@@ -127,7 +127,7 @@ pip install numpy scipy polars
 After successful upload:
 
 1. Verify on https://pypi.org/project/pyreto/
-2. Check that version 0.4.0 is visible
+2. Check that version 0.5.0 is visible
 3. Test installation in fresh virtual environment
 4. Update GitHub releases if applicable
 5. Announce in relevant channels

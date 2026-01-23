@@ -1,11 +1,11 @@
 #!/bin/bash
-# Pyreto Release Script for v0.4.0
+# Pyreto Release Script for v0.5.0
 # This script builds and publishes pyreto to PyPI
 
 set -e
 
 echo "=========================================="
-echo "Pyreto Release Script v0.4.0"
+echo "Pyreto Release Script v0.5.0"
 echo "=========================================="
 
 # Colors for output
@@ -90,7 +90,7 @@ ls -lh dist/
 
 # Step 6: Verify the package
 echo -e "${YELLOW}Verifying package...${NC}"
-$VENV_PIP install dist/pyreto-0.4.0-py3-none-any.whl
+$VENV_PIP install dist/pyreto-0.5.0-py3-none-any.whl
 $VENV_PYTHON -c "import pyreto as pr; print(f'Package version: {pr.__version__}')"
 $VENV_PYTHON -c "from pyreto import mc; print('MC module imported successfully')"
 
@@ -110,7 +110,7 @@ if [ "$upload_test" = "y" ]; then
     read -r test_install
     if [ "$test_install" = "y" ]; then
         echo -e "${YELLOW}Testing installation...${NC}"
-        $VENV_PIP install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.4.0
+        $VENV_PIP install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyreto==0.5.0
         $VENV_PYTHON -c "import pyreto as pr; print(f'Installed version: {pr.__version__}')"
         $VENV_PYTHON -c "from pyreto import mc; print('MC module available')"
     fi

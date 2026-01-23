@@ -1,8 +1,8 @@
-# Pyreto v0.4.0 - Ready for Release ✅
+# Pyreto v0.5.0 - Ready for Release ✅
 
 ## 🎉 Release Summary
 
-**Version**: 0.4.0  
+**Version**: 0.5.0  
 **Status**: Ready for PyPI publishing  
 **Branch**: mc-core (fully merged with classless)  
 **Key Feature**: Monte Carlo simulation engine added
@@ -37,7 +37,7 @@
 
 ### Installation
 ```bash
-pip install pyreto==0.4.0
+pip install pyreto==0.5.0
 ```
 
 ### Basic Usage
@@ -77,7 +77,7 @@ var_99 = np.percentile(port_returns, 1)
 | Field | Value |
 |-------|-------|
 | Name | pyreto |
-| Version | 0.4.0 |
+| Version | 0.5.0 |
 | Description | Tail risk management library with Monte Carlo simulation (classless functional API) |
 | Dependencies | numpy>=1.20.0, scipy>=1.10.0, polars>=0.19.0 |
 | Python | >=3.8 |
@@ -87,7 +87,7 @@ var_99 = np.percentile(port_returns, 1)
 
 ### Source Code
 - `src/pyreto/` - Main package
-  - `__init__.py` - Version 0.4.0, exports mc module
+  - `__init__.py` - Version 0.5.0, exports mc module
   - `mc.py` - Monte Carlo engine (99 lines)
   - `distributions/` - Distribution modules with bug fixes
 
@@ -113,16 +113,16 @@ var_99 = np.percentile(port_returns, 1)
 ### Version Check
 ```bash
 $ grep version pyproject.toml
-version = "0.4.0"
+version = "0.5.0"
 
 $ grep version src/pyreto/__init__.py
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 ```
 
 ### Import Test
 ```bash
 $ python -c "import pyreto as pr; print(pr.__version__)"
-0.4.0
+0.5.0
 
 $ python -c "from pyreto import mc; print('MC OK')"
 MC OK
@@ -171,7 +171,7 @@ twine upload dist/*
 ### Verification
 ```bash
 # Test installation
-pip install pyreto==0.4.0
+pip install pyreto==0.5.0
 
 # Verify
 python -c "import pyreto as pr; print(f'v{pr.__version__} installed')"
@@ -241,7 +241,7 @@ SPY 5% ES: -0.0392 (-3.92%)
 
 **✅ READY FOR PYPI PUBLISHING**
 
-All code is committed, tested, and documented. Version 0.4.0 is ready to be published.
+All code is committed, tested, and documented. Version 0.5.0 is ready to be published.
 
 **Next Steps:**
 1. Run `./release.sh` or follow manual publishing steps
