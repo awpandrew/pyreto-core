@@ -56,9 +56,9 @@ def test_stationary_mean_block():
 
 def test_es_conf_contains_analytical():
     """Bootstrap CI contains analytical t ES ≥ 90% of runs."""
-    # Load SPY data
-    returns = np.genfromtxt("spy_returns.csv", delimiter=",", skip_header=1)
-    returns = returns[:1000]  # Use first 1000 for speed
+    # Load SPY data (use Polars for fastest I/O)
+    import polars as pl
+    returns = pl.read_csv("spy_returns.csv")["daily_return"].to_numpy()[:1000]
 
     # Analytical ES from Student's t
     par = pr.student_t.fit(returns)

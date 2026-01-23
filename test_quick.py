@@ -79,7 +79,8 @@ print("-" * 70)
 try:
     # Load real SPY data if available
     if os.path.exists('spy_returns.csv'):
-        spy_returns = np.genfromtxt('spy_returns.csv', delimiter=',', skip_header=1)
+        import polars as pl
+        spy_returns = pl.read_csv('spy_returns.csv')["daily_return"].to_numpy()
         if len(spy_returns) > 0:
             par_spy = student_t.fit(spy_returns)
             var_spy = student_t.var(0.05, par_spy)
