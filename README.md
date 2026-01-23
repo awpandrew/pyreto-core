@@ -123,7 +123,7 @@ assert (sim1["SPY"] == sim2["SPY"]).all()  # Exactly identical
 
 ## API
 
-Each distribution module (student_t, alpha_stable, nig) exposes:
+Each distribution module (student_t, alpha_stable, nig, gpd) exposes:
 
 - `fit(returns)` → dict (fitted parameters)
 - `pdf(x, par)` → ndarray (density)
@@ -159,6 +159,34 @@ print(f"Alpha-Stable ES(1%): {es_stable:.4f}")
 par_nig = pr.nig.fit(returns)
 es_nig = pr.nig.es(par_nig, alpha=0.01)
 print(f"NIG ES(1%): {es_nig:.4f}")
+```
+
+### Peaks Over Threshold (GPD)
+
+```python
+import pyreto as pr
+import numpy as np
+
+# For Peaks Over Threshold, extract exceedances above a threshold
+returns = np.random.standard_t(3, 1000) * 0.01
+threshold = np.percentile(returns, 95)  # 95th percentile threshold
+exceedances = returns[returns > threshold] - threshold
+
+# Fit Generalised Pareto Distribution to exceedances
+par_gpd = pr.gpd.fit(exceedances)
+print(f"GPD Parameters: {par_gpd}")
+
+# Calculate VaR and ES for exceedances
+var_exc = pr.gpd.var(0.05, par_gpd)
+es_exc = pr.gpd.es(0.05, par_gpd)
+print(f"Exceedance VaR(5%): {var_exc:.4f}")
+print(f"Exceedance ES(5%): {es_exc:.4f}")
+
+# Convert back to original scale if needed
+var_original = threshold + var_exc
+es_original = threshold + es_exc
+print(f"Original scale VaR(5%): {var_original:.4f}")
+print(f"Original scale ES(5%): {es_original:.4f}")
 ```
 
 ## Testing with Included Data
@@ -214,5 +242,6 @@ pr.student_t.fit([])  # ValueError
 - `student_t`: Student's T distribution (recommended, fastest)
 - `alpha_stable`: Alpha stable distribution (most flexible, slower)
 - `nig`: Normal-inverse Gaussian (good balance)
+- `gpd`: Generalised Pareto Distribution (Peaks Over Threshold)
 
 All models use identical function signatures.

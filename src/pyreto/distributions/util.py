@@ -25,7 +25,7 @@ def validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
 
     returns = returns.ravel()
 
-    if returns.size() == 0:
+    if returns.size == 0:
         raise ValueError("Returns cannot be empty")
     if not np.isfinite(returns).all():
         raise ValueError("Returns must be finite (no NaN or Inf)")

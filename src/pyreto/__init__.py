@@ -6,5 +6,6 @@ __version__ = "0.4.0"
 from .distributions import student_t
 from .distributions import alpha_stable
 from .distributions import nig
+from .distributions import gpd
 
-__all__ = ["student_t", "alpha_stable", "nig"]
+__all__ = ["student_t", "alpha_stable", "nig", "gpd"]
