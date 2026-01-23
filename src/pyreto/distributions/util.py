@@ -29,7 +29,7 @@ def validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
         raise ValueError("Returns cannot be empty")
     if not np.isfinite(returns).all():
         raise ValueError("Returns must be finite (no NaN or Inf)")
-    if returns.size() < 30:
+    if returns.size < 30:
         warnings.warn(
             "Statistical power low with fewer than 30 observations",
             UserWarning,

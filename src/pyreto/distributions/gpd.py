@@ -47,7 +47,10 @@ def pdf(x, par):
     ndarray
         PDF values
     """
-    return genpareto.pdf(x, **par)
+    result = genpareto.pdf(x, **par)
+    if np.ndim(result) == 0:
+        return np.array([result])
+    return result
 
 
 def cdf(x, par):
@@ -66,7 +69,10 @@ def cdf(x, par):
     ndarray
         CDF values
     """
-    return genpareto.cdf(x, **par)
+    result = genpareto.cdf(x, **par)
+    if np.ndim(result) == 0:
+        return np.array([result])
+    return result
 
 
 def ppf(q, par):
@@ -84,7 +90,10 @@ def ppf(q, par):
     ndarray
         PPF values
     """
-    return genpareto.ppf(q, **par)
+    result = genpareto.ppf(q, **par)
+    if np.ndim(result) == 0:
+        return np.array([result])
+    return result
 
 
 def var(alpha, par):
@@ -129,10 +138,7 @@ def es(alpha, par):
     var_val = var(alpha, par)
 
     def integrand(x):
-        pdf_val = pdf(x, par)
-        if np.isscalar(x):
-            return x * float(pdf_val)
-        return x * pdf_val
+        return x * pdf(x, par)[0]
 
     # Use finite integration bounds for GPD
     # For c > 0, distribution has finite upper bound at loc - scale/c
