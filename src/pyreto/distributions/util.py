@@ -18,5 +18,22 @@ def _validate_returns(returns: Sequence[float] | np.ndarray) -> np.ndarray:
         If the array is empty or contains non-finite values.
     """
     # NOTE: should this also warn if len(returns) below certain threshold? below certain length no statistical reasoning makes sense?
+    if not isinstance(returns, np.ndarray):
+        returns = np.asarray(returns, dtype=np.float64)
+    else:
+        returns = returns.astype(np.float64, copy=False)
+
+    returns = returns.ravel()
+
+    if returns.size() == 0:
+        raise ValueError("Returns cannot be empty")
+    if not np.isfinite(returns).all():
+        raise ValueError("Returns must be finite (no NaN or Inf)")
+    if returns.size() < 30:
+        warnings.warn(
+            "Statistical power low with fewer than 30 observations",
+            UserWarning,
+            stacklevel=2
+        )
 
     return returns
