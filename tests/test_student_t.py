@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from pyreto import student_t
-from test_common import generate_test_returns, check_var_es_properties, check_distribution_properties
+from tests.test_common import generate_test_returns, check_var_es_properties, check_distribution_properties
 
 
 class TestStudentTFit:
