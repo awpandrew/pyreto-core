@@ -153,6 +153,7 @@ def es_conf(returns: Union[np.ndarray, pl.Series],
             alpha: float = 0.01,
             n_draws: int = 10_000,
             method: str = "circular",
+            block_len: Optional[int] = None,
             seed: Optional[int] = 42) -> Dict[str, Union[float, int]]:
     """
     Bootstrap confidence interval for Expected Shortfall.
@@ -167,6 +168,8 @@ def es_conf(returns: Union[np.ndarray, pl.Series],
         Number of bootstrap replicates.
     method : str
         "circular" or "stationary" block bootstrap.
+    block_len : int or None
+        Block length. If None, auto-tuned.
     seed : int or None
         Random seed.
 
@@ -175,16 +178,17 @@ def es_conf(returns: Union[np.ndarray, pl.Series],
     dict
         {"es_mean": float, "es_low": float, "es_high": float, "block_len": int}
     """
-    bootstrap_matrix = blocks(returns, n_draws=n_draws, method=method, seed=seed)
+    bootstrap_matrix = blocks(returns, n_draws=n_draws, block_len=block_len, method=method, seed=seed)
     bootstrap_data = bootstrap_matrix.to_numpy()  # Shape (n_draws, n)
 
     # Calculate ES for each bootstrap draw
     k = max(1, int(alpha * bootstrap_data.shape[1]))
     es_vec = np.array([np.mean(np.sort(draw)[:k]) for draw in bootstrap_data])
 
-    # Get block length used
+    # Get block length used (auto-tuned if not specified)
     n = len(returns)
-    block_len = max(1, int(np.ceil(n ** (1 / 3)))) if method == "circular" else politis_white(returns)
+    if block_len is None:
+        block_len = max(1, int(np.ceil(n ** (1 / 3)))) if method == "circular" else politis_white(returns)
 
     return {
         "es_mean": float(np.mean(es_vec)),
