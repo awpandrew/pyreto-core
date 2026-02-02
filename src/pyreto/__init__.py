@@ -11,4 +11,10 @@ from . import mc
 from . import vine
 from . import bootstrap
 
-__all__ = ["student_t", "alpha_stable", "nig", "gpd", "mc", "vine", "bootstrap"]
+# Import model registry
+from .models import list_models, get_model_info, describe_model, models, ModelInfo
+
+__all__ = [
+    "student_t", "alpha_stable", "nig", "gpd", "mc", "vine", "bootstrap",
+    "list_models", "get_model_info", "describe_model", "models", "ModelInfo"
+]

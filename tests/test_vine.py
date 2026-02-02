@@ -5,10 +5,14 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+import pytest
 import numpy as np
 import scipy.stats as stats
 import polars as pl
 import pyreto as pr
+
+# Skip all tests if pyvinecop is not installed
+pyvinecop = pytest.importorskip("pyvinecop", reason="pyvinecop not installed, install with: pip install pyvinecop")
 
 
 def test_vine_fit_basic():

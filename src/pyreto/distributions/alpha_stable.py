@@ -111,9 +111,11 @@ def cdf(x, par):
         CDF values
     """
     x = np.atleast_1d(x)
-    results = np.zeros_like(x)
+    results = np.zeros_like(x, dtype=float)
     for i, xi in enumerate(x):
-        results[i], _ = quad(lambda xx: pdf(xx, par), -np.inf, xi)
+        # Ensure xi is a Python float for quad compatibility
+        xi_float = float(xi)
+        results[i], _ = quad(lambda xx: pdf(xx, par), -np.inf, xi_float)
     return results
 
 

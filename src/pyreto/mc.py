@@ -53,9 +53,19 @@ def simulate(copula, margins, n_draws, seed=None):
                                    shape=np.eye(n_assets),
                                    df=dof)
         t_draws = mvt.rvs(size=n_draws, random_state=rng)
+        # Ensure 2D array even when n_draws=1 or n_assets=1
+        if n_draws == 1 or n_assets == 1:
+            t_draws = np.atleast_2d(t_draws)
+            if t_draws.shape[0] != n_draws:
+                t_draws = t_draws.T
         uniforms = stats.t.cdf(t_draws, df=dof)
     else:
         raise ValueError("copula must be 'gaussian' or 't'")
+
+    # Ensure uniforms is 2D for consistent indexing
+    uniforms = np.atleast_2d(uniforms)
+    if uniforms.shape != (n_draws, n_assets):
+        uniforms = uniforms.reshape(n_draws, n_assets)
 
     # Apply marginal inverse CDFs
     out = {}
